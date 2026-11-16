@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeuanganKu</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#182230}
+header{background:linear-gradient(135deg,#5b5ce2,#7957dc);color:white;padding:28px 20px;border-radius:0 0 25px 25px}
+header h1{font-size:25px}
+header p{margin-top:6px;opacity:.85}
+.container{max-width:900px;margin:auto;padding:20px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:-35px}
+.card{background:white;border-radius:16px;padding:18px;box-shadow:0 8px 25px #00000010}
+.stat p{font-size:12px;color:#777}
+.stat h2{margin-top:8px;font-size:20px}
+.green{color:#18a873}.red{color:#e45467}
+.form{margin-top:20px}
+.form h2,.transactions h2{margin-bottom:15px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;font-size:12px;margin-bottom:5px;color:#666}
+input,select{width:100%;padding:12px;margin-bottom:12px;border:1px solid #ddd;border-radius:10px;outline:none}
+input:focus,select:focus{border-color:#655ee8}
+button{border:0;border-radius:10px;padding:12px 16px;cursor:pointer;font-weight:bold}
+.primary{background:#5b5ce2;color:white;width:100%}
+.filters{display:flex;gap:10px;margin-bottom:15px}
+.filters input{margin:0}
+.filters select{margin:0}
+table{width:100%;border-collapse:collapse}
+th,td{padding:13px 8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+th{color:#888;font-size:11px}
+.amount{text-align:right;font-weight:bold}
+.action{background:#f1f3f7;margin-left:4px}
+.empty{text-align:center;padding:25px;color:#888}
+.table{overflow:auto}
+@media(max-width:600px){
+.stats{grid-template-columns:1fr}
+.row{grid-template-columns:1fr}
+.filters{display:block}
+.filters input,.filters select{width:100%;margin-bottom:8px}
+table{min-width:600px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="container">
+<h1>💰 KeuanganKu</h1>
+<p>Pencatatan keuangan pribadi</p>
+</div>
+</header>
+
+<div class="container">
+
+<section class="stats">
+
+<div class="card stat">
+<p>Saldo</p>
+<h2 id="saldo">Rp0</h2>
+</div>
+
+<div class="card stat">
+<p>Total Pemasukan</p>
+<h2 class="green" id="income">Rp0</h2>
+</div>
+
+<div class="card stat">
+<p>Total Pengeluaran</p>
+<h2 class="red" id="expense">Rp0</h2>
+</div>
+
+</section>
+
+<section class="card form">
+
+<h2>➕ Tambah Transaksi</h2>
+
+<div class="row">
+
+<div>
+<label>Jenis</label>
+<select id="type">
+<option value="income">Pemasukan</option>
+<option value="expense">Pengeluaran</option>
+</select>
+</div>
+
+<div>
+<label>Nominal</label>
+<input id="amount" type="number" placeholder="50000">
+</div>
+
+</div>
+
+<label>Keterangan</label>
+<input id="description" placeholder="Contoh: Uang saku">
+
+<div class="row">
+
+<div>
+<label>Kategori</label>
+<select id="category">
+<option>Uang Saku</option>
+<option>Makanan</option>
+<option>Transportasi</option>
+<option>Belanja</option>
+<option>Pendidikan</option>
+<option>Hiburan</option>
+<option>Tagihan</option>
+<option>Lainnya</option>
+</select>
+</div>
+
+<div>
+<label>Tanggal</label>
+<input id="date" type="date">
+</div>
+
+</div>
+
+<button class="primary" onclick="addTransaction()">
+Simpan Transaksi
+</button>
+
+</section>
+
+<section class="card transactions">
+
+<h2>📋 Transaksi</h2>
+
+<div class="filters">
+<input id="search" placeholder="Cari transaksi..." oninput="render()">
+
+<select id="filter" onchange="render()">
+<option value="all">Semua</option>
+<option value="income">Pemasukan</option>
+<option value="expense">Pengeluaran</option>
+</select>
+</div>
+
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Tanggal</th>
+<th>Keterangan</th>
+<th>Kategori</th>
+<th>Nominal</th>
+<th>Aksi</th>
+</tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+</section>
+
+</div>
+
+<script>
+
+let data=JSON.parse(localStorage.getItem("keuanganku")||"[]");
+
+const rupiah=n=>new Intl.NumberFormat("id-ID",{
+style:"currency",
+currency:"IDR",
+maximumFractionDigits:0
+}).format(n);
+
+document.getElementById("date").value=
+new Date().toISOString().slice(0,10);
+
+function save(){
+localStorage.setItem("keuanganku",JSON.stringify(data));
+}
+
+function addTransaction(){
+
+let type=document.getElementById("type").value;
+let amount=Number(document.getElementById("amount").value);
+let description=document.getElementById("description").value.trim();
+let category=document.getElementById("category").value;
+let date=document.getElementById("date").value;
+
+if(!amount||!description||!date){
+alert("Lengkapi data transaksi!");
+return;
+}
+
+data.push({
+id:Date.now(),
+type:type,
+amount:amount,
+description:description,
+category:category,
+date:date
+});
+
+save();
+
+document.getElementById("amount").value="";
+document.getElementById("description").value="";
+
+render();
+
+alert("Transaksi berhasil disimpan!");
+}
+
+function deleteTransaction(id){
+
+if(confirm("Hapus transaksi ini?")){
+data=data.filter(x=>x.id!==id);
+save();
+render();
+}
+
+}
+
+function render(){
+
+let income=0;
+let expense=0;
+
+data.forEach(x=>{
+if(x.type==="income") income+=x.amount;
+else expense+=x.amount;
+});
+
+document.getElementById("income").textContent=rupiah(income);
+document.getElementById("expense").textContent=rupiah(expense);
+document.getElementById("saldo").textContent=rupiah(income-expense);
+
+let search=document.getElementById("search").value.toLowerCase();
+let filter=document.getElementById("filter").value;
+
+let list=data.filter(x=>{
+return (filter==="all"||x.type===filter)&&
+(x.description.toLowerCase().includes(search)||
+x.category.toLowerCase().includes(search));
+}).sort((a,b)=>b.id-a.id);
+
+let html="";
+
+if(list.length===0){
+
+html=`<tr>
+<td colspan="5" class="empty">Belum ada transaksi.</td>
+</tr>`;
+
+}else{
+
+list.forEach(x=>{
+
+let sign=x.type==="income"?"+":"-";
+let cls=x.type==="income"?"green":"red";
+
+html+=`<tr>
+<td>${x.date}</td>
+<td><strong>${escapeHtml(x.description)}</strong></td>
+<td>${escapeHtml(x.category)}</td>
+<td class="amount ${cls}">${sign} ${rupiah(x.amount)}</td>
+<td>
+<button class="action"
+onclick="deleteTransaction(${x.id})">🗑️</button>
+</td>
+</tr>`;
+
+});
+
+}
+
+document.getElementById("list").innerHTML=html;
+}
+
+function escapeHtml(text){
+return String(text)
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+render();
+
+</script>
+
+</body>
+</html>
